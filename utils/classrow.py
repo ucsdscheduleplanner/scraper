@@ -31,7 +31,8 @@ def get_class_object(quarter):
                    or self.room == "Cancelled" or self.instructor == "Cancelled"
 
         def __repr__(self):
-            return ",".join(("{}={}".format(*i) for i in vars(self).items()))
+            params = ', '.join(f'{k}={v}' for k, v in self.asdict().items())
+            return f"{self.__class__.__name__}({params})"
 
     Registry[quarter] = ClassRow
     return ClassRow

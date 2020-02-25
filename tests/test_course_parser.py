@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 from sd_parser.course_parser import CourseParser
 from tests.test_settings import RESOURCE_DIR
@@ -69,6 +70,19 @@ def test_phys_page_many_discussions():
         cls = phys_di[i]
         assert cls.course_id == "9934{:02d}".format(i + 9)
         assert cls.units == "4"
+
+
+def test_parse_physics_final():
+    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "SP20_PHYS.html"), "PHYS")
+
+    phys: List[ClassRow]
+    phys = [c for c in classes if c.course_num == "1A"]
+    print(phys)
+    assert len(phys) == 2
+
+    phys_class = phys[1]
+
+    assert phys_class.instructor == ""
 
 
 def test_units_assigned():
