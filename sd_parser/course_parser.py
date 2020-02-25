@@ -6,7 +6,7 @@ from typing import List
 import bs4
 
 from settings import COURSES_HTML_PATH, DATABASE_PATH
-from utils.classrow import get_class_object, create_class, ClassRow
+from utils.models import ClassRow
 
 
 class CourseParser:
@@ -83,7 +83,7 @@ class CourseParser:
                 self.units = "N/A"
             # num slots on the top header
             if len(course_num) == 4:
-                ret.append(create_class(self.quarter, department=department,
+                ret.append(ClassRow(quarter=self.quarter, department=department,
                                         course_num=None, course_id="START/END OF CLASS"))
 
         info = row.find_all(name='td',
@@ -111,8 +111,8 @@ class CourseParser:
             room = copy_dict[8]
             instructor = copy_dict[9]
 
-            info = create_class(
-                self.quarter,
+            info = ClassRow(
+                quarter=self.quarter,
                 course_id=course_id,
                 department=department,
                 course_num=course_num,

@@ -58,6 +58,8 @@ QUARTERS_TO_SCRAPE = json.loads(CONFIG["VARS"]["QUARTERS"])
 # Time for timeout for browser
 TIMEOUT = 30
 
+SQLITE_STR = "sqlite:///%s" % DATABASE_PATH
+
 # Time before class timeout
 DEPT_SEARCH_TIMEOUT = 5
 

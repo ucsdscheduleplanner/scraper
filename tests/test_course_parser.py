@@ -3,11 +3,10 @@ from typing import List
 
 from sd_parser.course_parser import CourseParser
 from tests.test_settings import TEST_RESOURCE_DIR
-from utils.classrow import get_class_object
+from utils.models import ClassRow
 
 quarter = "TEST20"
 parser = CourseParser(quarter)
-ClassRow = get_class_object(quarter)
 
 
 def test_basic_page():

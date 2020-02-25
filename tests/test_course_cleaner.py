@@ -4,12 +4,11 @@ from typing import List, Dict
 from sd_cleaner.course_cleaner import CourseCleaner
 from sd_parser.course_parser import CourseParser
 from tests.test_settings import TEST_RESOURCE_DIR
-from utils.classrow import get_class_object
+from utils.models import ClassRow
 
 quarter = "TEST20"
 parser = CourseParser(quarter)
 cleaner = CourseCleaner(quarter)
-ClassRow = get_class_object(quarter)
 
 
 def test_normal_clean():

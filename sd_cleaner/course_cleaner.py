@@ -1,51 +1,42 @@
 import itertools
-import sqlite3
 from itertools import groupby
 from typing import List, Dict
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from database.db_interface import Base
-from settings import DATABASE_PATH
-from utils.classrow import get_class_object, create_class, ClassRow
+from settings import SQLITE_STR
+from utils.models import ClassRow, Department
 from utils.timeutils import TimeIntervalCollection
 
 """
 Takes input from CourseParser
 """
 
-SQLITE_STR = "sqlite:///%s" % DATABASE_PATH
-
 
 class CourseCleaner:
     def __init__(self, quarter):
         self.engine = create_engine(SQLITE_STR)
-        self.database = sqlite3.connect(DATABASE_PATH)
         self.quarter = quarter
 
         self.session: Session
-        self.session = None
-        # will set the return value to a dict
-        self.database.row_factory = sqlite3.Row
-        self.cursor = self.database.cursor()
+        self.session = sessionmaker(bind=self.engine)()
 
     def clean(self, data: List[ClassRow]):
         print('Begin cleaning database.')
-        self.setup_tables()
+        self.create_tables()
         self._clean(data)
-        self.close()
+        self.session.commit()
         print('Finished cleaning database.')
 
-    def setup_tables(self):
-        Base.metadata.drop_all(self.engine)
-        Base.metadata.create_all(self.engine)
-        self.session = sessionmaker(bind=self.engine)()
+    def create_tables(self):
+        Department.__table__.create(self.engine, checkfirst=True)
+        ClassRow.__table__.create(self.engine, checkfirst=True)
+        self.session.query(ClassRow).filter(ClassRow.quarter == self.quarter).delete()
 
     def _clean(self, data: List[ClassRow]):
         # getting list of departments
-        self.cursor.execute("SELECT * FROM DEPARTMENT")
-        departments = [i["DEPT_CODE"] for i in self.cursor.fetchall()]
+        departments = [i.dept_code for i in self.session.query(Department).filter(Department.quarter == self.quarter)]
 
         print("Cleaning quarter {}".format(self.quarter))
         for department in departments:
@@ -60,7 +51,7 @@ class CourseCleaner:
         visible_classes: List[ClassRow]
         visible_classes = [row for row in data if row.department == department]
         # doing this so fast_ptr knows where to stop
-        visible_classes.append(create_class(self.quarter, course_num=None))
+        visible_classes.append(ClassRow(quarter=self.quarter, course_num=None))
 
         # blank class list for ones to insert
         classes_to_insert = []
@@ -136,7 +127,7 @@ class CourseCleaner:
 
                     # class with type is a class
                     for class_with_type in type_group:
-                        new_class = create_class(self.quarter, **class_with_type.asdict())
+                        new_class = ClassRow(**class_with_type.asdict())
                         # always guaranteed to have at least one element in the list
                         new_class.course_id = replica[0].course_id
                         # handle the passing of variable information through rows here
@@ -205,13 +196,10 @@ class CourseCleaner:
                                                         len(days) - 1]))
         for entry in day_time_pairs:
             # each subsection has mostly the same info as the section
-            subsection = create_class(self.quarter, **section.asdict())
+            subsection = ClassRow(**section.asdict())
             subsection.days = entry[0]
             subsection.times = entry[1]
             ret.append(subsection)
         return ret
-
-    def close(self):
-        self.session.commit()
 
 # Cleaner().clean()
