@@ -2,14 +2,17 @@ import os
 from typing import List, Dict
 
 from sd_cleaner.course_cleaner import CourseCleaner
-from sd_parser.course_parser import CourseParser, ClassRow
+from sd_parser.course_parser import CourseParser
 from tests.test_settings import RESOURCE_DIR
+from utils.classrow import get_class_object
+
+quarter = "TEST20"
+parser = CourseParser(quarter)
+cleaner = CourseCleaner(quarter)
+ClassRow = get_class_object(quarter)
 
 
 def test_normal_clean():
-    parser = CourseParser()
-    cleaner = CourseCleaner()
-
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_CSE.html"), "CSE")
     classes = cleaner.process_department("CSE", classes)
     cse = set([c.course_num for c in classes])
@@ -17,20 +20,15 @@ def test_normal_clean():
 
 
 def test_normal_clean_data():
-    parser = CourseParser()
-    cleaner = CourseCleaner()
-
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_CSE.html"), "CSE")
     classes = cleaner.process_department("CSE", classes)
     cse = [c for c in classes if c.course_num == "100"]
-    check_classes([{"days": "M", "section_type": "LE", "instructor": "Cao, Yingjun"}, {"days": "M", "section_type": "DI"},
-                   {"days": "W", "section_type": "LE"}, {"days": "F", "section_type": "LE"}], cse)
+    check_classes(
+        [{"days": "M", "section_type": "LE", "instructor": "Cao, Yingjun"}, {"days": "M", "section_type": "DI"},
+         {"days": "W", "section_type": "LE"}, {"days": "F", "section_type": "LE"}], cse)
 
 
 def test_continue_with_bad_date_format():
-    parser = CourseParser()
-    cleaner = CourseCleaner()
-
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "SP20_CSE_bad_date_format.html"), "CSE")
 
     classes = cleaner.process_department("CSE", classes)
@@ -38,9 +36,6 @@ def test_continue_with_bad_date_format():
 
 
 def test_clean_physics():
-    parser = CourseParser()
-    cleaner = CourseCleaner()
-
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
 
     classes = cleaner.process_department("PHYS", classes)
@@ -52,10 +47,18 @@ def test_clean_physics():
                    {"days": "F", "times": "08:00-08:50"}, {"days": "Tu"}], phys)
 
 
-def test_cancelled_classes():
-    parser = CourseParser()
-    cleaner = CourseCleaner()
+def test_clean_physics_final():
+    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "SP20_PHYS.html"), "PHYS")
 
+    classes = cleaner.process_department("PHYS", classes)
+
+    phys = [c for c in classes if c.course_num == "1A"]
+    assert len(phys) == 4
+
+    check_classes([{"course_id": "4733", "days": "W", "times": "15:00-17:59"}], phys)
+
+
+def test_cancelled_classes():
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "SP20_MUS_cancelled.html"), "MUS")
 
     classes = cleaner.process_department("MUS", classes)
@@ -77,4 +80,6 @@ def check_classes(match_data: List[Dict[str, str]], classes: List[ClassRow]):
                 found = True
                 break
         ret = ret and found
+        if not found:
+            print(classes)
     assert ret is True

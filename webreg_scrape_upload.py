@@ -20,19 +20,20 @@ def main():
         execution_times[label] = '{0:.3f} minutes'.format((time.time() - timestamp) / 60)
         return ret
 
-    # department_scraper = DepartmentScraper()
-    # record_execution_time(department_scraper.scrape, 'Department Scraping')
-    #
-    # course_scraper = CourseScraper()
-    # record_execution_time(course_scraper.scrape, 'Course Scraping {} '.format(QUARTERS_TO_SCRAPE))
+    for quarter in QUARTERS_TO_SCRAPE:
+        # department_scraper = DepartmentScraper(quarter)
+        # record_execution_time(department_scraper.scrape, 'Department Scraping')
+        #
+        # course_scraper = CourseScraper(quarter)
+        # record_execution_time(course_scraper.scrape, 'Course Scraping {} '.format(QUARTERS_TO_SCRAPE))
 
-    parser = CourseParser()
-    parsed_data = record_execution_time(parser.parse, 'Course Parsing {}'.format(QUARTERS_TO_SCRAPE))
+        parser = CourseParser(quarter)
+        parsed_data = record_execution_time(parser.parse, 'Course Parsing {}'.format(QUARTERS_TO_SCRAPE))
 
-    cleaner = CourseCleaner()
-    record_execution_time(partial(cleaner.clean, parsed_data), 'Cleaning')
+        cleaner = CourseCleaner(quarter)
+        record_execution_time(partial(cleaner.clean, parsed_data), 'Cleaning')
 
-    #record_execution_time(export_to_mysql, 'MySQL Exporting')
+    # record_execution_time(export_to_mysql, 'MySQL Exporting')
 
     pprint.pprint(execution_times)
 

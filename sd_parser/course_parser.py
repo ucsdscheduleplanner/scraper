@@ -1,66 +1,45 @@
 import os
 import re
 import sqlite3
-from typing import List
+from typing import List, Callable
 
 import bs4
 
 from settings import COURSES_HTML_PATH, DATABASE_PATH, RAW_QUARTER_TABLE
+from utils.classrow import get_class_object
 
-
-class ClassRow:
-    def __init__(self, course_id=None, department=None, course_num=None, section_id=None, section_type=None,
-                 days=None, times=None, location=None, room=None, instructor=None, description=None, units=None):
-        self.course_id = course_id
-        self.department = department
-        self.course_num = course_num
-        self.section_id = section_id
-        self.section_type = section_type
-        self.days = days
-        self.times = times
-        self.location = location
-        self.room = room
-        self.instructor = instructor
-        self.description = description
-        self.units = units
-
-    def is_cancelled(self):
-        return self.times == "Cancelled" or self.days == "Cancelled" or self.location == "Cancelled" \
-            or self.room == "Cancelled" or self.instructor == "Cancelled"
-
-    def __repr__(self):
-        return ",".join(("{}={}".format(*i) for i in vars(self).items()))
+ClassRow: Callable
+ClassRow = None
 
 
 class CourseParser:
     description: str
     current_class: str
+    quarter: str
 
-    def __init__(self):
+    def __init__(self, quarter):
         # initializing database
         self.connection = sqlite3.connect(DATABASE_PATH)
         self.cursor = self.connection.cursor()
 
+        self.quarter = quarter
         self.current_class, self.description, self.units = '', '', ''
 
-    def parse(self):
+        global ClassRow
+        ClassRow = get_class_object(quarter)
+
+    def parse(self) -> List[ClassRow]:
         print('Beginning course parsing...')
-        subdirectories = [file.name for file in os.scandir(COURSES_HTML_PATH) if file.is_dir()]
 
-        ret = {}
         try:
-            for quarter in subdirectories:
-                print("Parsing %s" % quarter)
-                ret[quarter] = self.parse_data(quarter)
+            print("Parsing %s" % self.quarter)
+            return self.parse_data()
         finally:
-            self.close()
+            print('Finished course parsing.')
 
-        print('Finished course parsing.')
-        return ret
-
-    def parse_data(self, quarter) -> List[ClassRow]:
+    def parse_data(self) -> List[ClassRow]:
         class_store = []
-        quarter_path = os.path.join(COURSES_HTML_PATH, quarter)
+        quarter_path = os.path.join(COURSES_HTML_PATH, self.quarter)
         departments = [file.name for file in os.scandir(quarter_path) if file.is_dir()]
         departments.sort()
 
@@ -152,37 +131,3 @@ class CourseParser:
 
             ret.append(info)
         return ret
-
-    """
-    Method to make final alterations to the dataset. 
-    Will put database in cleanable format; however, will not remove
-    database. 
-    """
-
-    def validate_info(self, data):
-        # Make sure final is not randomly in the wrong column
-        if data[1] == 'FINAL':
-            data[1] = None
-            data[2] = 'FINAL'
-        return tuple(data)
-
-    # Put data into database
-    def insert_data(self, quarter):
-        table_name = RAW_QUARTER_TABLE.format(quarter)
-        self.cursor.execute("DROP TABLE IF EXISTS {}".format(table_name))
-        self.cursor.execute("CREATE TABLE {}"
-                            "(ID INTEGER PRIMARY KEY, DEPARTMENT TEXT, COURSE_NUM TEXT, COURSE_ID TEXT, "
-                            "TYPE TEXT, DAYS TEXT, TIME TEXT, LOCATION TEXT, ROOM TEXT, "
-                            "INSTRUCTOR TEXT, DESCRIPTION TEXT)".format(table_name))
-
-        # TODO Make database insertion quicker
-        for info in self.class_store:
-            if len(info) > 1:
-                self.cursor.execute("INSERT OR IGNORE INTO {} VALUES(?,?,?,?,?,?,?,?,?,?,?)".format(table_name),
-                                    (None,) + info)
-            else:
-                self.cursor.execute("INSERT INTO {}(ID, DEPARTMENT) VALUES(?, ?)".format(table_name), (None,) + info)
-
-    def close(self):
-        self.connection.commit()
-        self.connection.close()

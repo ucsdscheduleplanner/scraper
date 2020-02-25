@@ -1,11 +1,15 @@
 import os
 
-from sd_parser.course_parser import CourseParser, ClassRow
+from sd_parser.course_parser import CourseParser
 from tests.test_settings import RESOURCE_DIR
+from utils.classrow import get_class_object
+
+quarter = "TEST20"
+parser = CourseParser(quarter)
+ClassRow = get_class_object(quarter)
 
 
 def test_basic_page():
-    parser = CourseParser()
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_CSE.html"), "CSE")
 
     cse100 = [c for c in classes if c.course_num == "100" and c.section_type == "DI"]
@@ -30,7 +34,6 @@ def test_basic_page():
 
 
 def test_page_all_same_department():
-    parser = CourseParser()
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_CSE.html"), "CSE")
     cse_classes = [c for c in classes if c.department == "CSE"]
 
@@ -38,7 +41,6 @@ def test_page_all_same_department():
 
 
 def test_phys_page_no_course_num():
-    parser = CourseParser()
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
 
     phys_le = [c for c in classes if c.course_num == "2A" and c.section_type == "LE"]
@@ -57,7 +59,6 @@ def test_phys_page_no_course_num():
 
 
 def test_phys_page_many_discussions():
-    parser = CourseParser()
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
 
     phys_di = [c for c in classes if c.course_num == "2A" and c.section_type == "DI"]
@@ -71,7 +72,6 @@ def test_phys_page_many_discussions():
 
 
 def test_units_assigned():
-    parser = CourseParser()
     classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
     phys = [c for c in classes if c.course_num == "1C"]
 

@@ -14,7 +14,7 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
 from utils.scraper_util import Browser
-from settings import COURSES_HTML_PATH, QUARTERS_TO_SCRAPE
+from settings import COURSES_HTML_PATH
 from settings import DATABASE_PATH, DATABASE_DIR
 from settings import SCHEDULE_OF_CLASSES_URL
 from settings import TIMEOUT, DEPT_SEARCH_TIMEOUT
@@ -160,7 +160,7 @@ class CourseScraperThread(Thread):
 
 
 class CourseScraper:
-    def __init__(self):
+    def __init__(self, quarter):
         # Connecting to the database for the list of departments
         os.makedirs(DATABASE_DIR, exist_ok=True)
         self.database = sqlite3.connect(DATABASE_PATH)
@@ -168,13 +168,12 @@ class CourseScraper:
 
         self.department_queue = queue.Queue()
 
-        for quarter in QUARTERS_TO_SCRAPE:
-            self.cursor.execute("SELECT DEPT_CODE FROM DEPARTMENT WHERE QUARTER=?", (quarter,))
-            # fetching the data returns a tuple with one element,
-            # so using list comprehension to convert the data
-            self.departments = [i[0] for i in self.cursor.fetchall()]
-            for department in self.departments:
-                self.department_queue.put({"department": department, "quarter": quarter})
+        self.cursor.execute("SELECT DEPT_CODE FROM DEPARTMENT WHERE QUARTER=?", (quarter,))
+        # fetching the data returns a tuple with one element,
+        # so using list comprehension to convert the data
+        self.departments = [i[0] for i in self.cursor.fetchall()]
+        for department in self.departments:
+            self.department_queue.put({"department": department, "quarter": quarter})
 
         # Recreate top level folder
         if os.path.exists(COURSES_HTML_PATH):

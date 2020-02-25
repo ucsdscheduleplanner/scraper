@@ -19,7 +19,7 @@ CONFIG = configparser.ConfigParser()
 CONFIG.read(os.path.join(HOME_DIR, "config", "config.example.ini"))
 
 # Database directory
-DATABASE_DIR = os.path.join(HOME_DIR, "cache", "database")
+DATABASE_DIR = os.path.join(HOME_DIR, "database")
 DATABASE_PATH = os.path.join(DATABASE_DIR, "data.db")
 
 # Image directory

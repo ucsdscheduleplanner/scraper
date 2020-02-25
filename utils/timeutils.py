@@ -4,10 +4,7 @@ from datetime import datetime
 
 import pytz
 
-from sd_parser.course_parser import ClassRow
-
 logging.basicConfig(level=logging.INFO)
-
 
 DAY_INDEX = 0
 TIME_INDEX = 1
@@ -125,7 +122,7 @@ class TimeIntervalCollection:
         return ret_days
 
     @staticmethod
-    def get_times(section: ClassRow):
+    def get_times(section):
         """
         Convert time string into Python time object. Should be given in the form TIMEa-TIMEp
         Ex: 8:00a-12:00p. Will fix to be more flexible later.
