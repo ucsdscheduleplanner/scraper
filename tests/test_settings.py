@@ -1,6 +1,6 @@
 import os
 
 # Where the directory is placed
-HOME_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
-RESOURCE_DIR = os.path.join(HOME_DIR, "resources")
+TEST_RESOURCE_DIR = os.path.join(TEST_HOME_DIR, "resources")

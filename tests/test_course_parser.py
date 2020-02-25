@@ -2,7 +2,7 @@ import os
 from typing import List
 
 from sd_parser.course_parser import CourseParser
-from tests.test_settings import RESOURCE_DIR
+from tests.test_settings import TEST_RESOURCE_DIR
 from utils.classrow import get_class_object
 
 quarter = "TEST20"
@@ -11,7 +11,7 @@ ClassRow = get_class_object(quarter)
 
 
 def test_basic_page():
-    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_CSE.html"), "CSE")
+    classes = parser.parse_file(os.path.join(TEST_RESOURCE_DIR, "WI20_CSE.html"), "CSE")
 
     cse100 = [c for c in classes if c.course_num == "100" and c.section_type == "DI"]
     # There are two CSE 100 classes
@@ -35,14 +35,14 @@ def test_basic_page():
 
 
 def test_page_all_same_department():
-    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_CSE.html"), "CSE")
+    classes = parser.parse_file(os.path.join(TEST_RESOURCE_DIR, "WI20_CSE.html"), "CSE")
     cse_classes = [c for c in classes if c.department == "CSE"]
 
     assert len(classes) == len(cse_classes)
 
 
 def test_phys_page_no_course_num():
-    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
+    classes = parser.parse_file(os.path.join(TEST_RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
 
     phys_le = [c for c in classes if c.course_num == "2A" and c.section_type == "LE"]
     # There are two CSE 100 classes
@@ -60,7 +60,7 @@ def test_phys_page_no_course_num():
 
 
 def test_phys_page_many_discussions():
-    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
+    classes = parser.parse_file(os.path.join(TEST_RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
 
     phys_di = [c for c in classes if c.course_num == "2A" and c.section_type == "DI"]
     # There are two CSE 100 classes
@@ -73,7 +73,7 @@ def test_phys_page_many_discussions():
 
 
 def test_parse_physics_final():
-    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "SP20_PHYS.html"), "PHYS")
+    classes = parser.parse_file(os.path.join(TEST_RESOURCE_DIR, "SP20_PHYS.html"), "PHYS")
 
     phys: List[ClassRow]
     phys = [c for c in classes if c.course_num == "1A"]
@@ -86,13 +86,13 @@ def test_parse_physics_final():
 
 
 def test_units_assigned():
-    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
+    classes = parser.parse_file(os.path.join(TEST_RESOURCE_DIR, "WI20_PHYS.html"), "PHYS")
     phys = [c for c in classes if c.course_num == "1C"]
 
     for cls in phys:
         assert cls.units == "3"
 
-    classes = parser.parse_file(os.path.join(RESOURCE_DIR, "WI20_AIP.html"), "AIP")
+    classes = parser.parse_file(os.path.join(TEST_RESOURCE_DIR, "WI20_AIP.html"), "AIP")
     aip = [c for c in classes if c.course_num == "197"]
 
     for cls in aip:

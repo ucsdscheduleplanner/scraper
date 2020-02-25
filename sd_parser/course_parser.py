@@ -1,15 +1,12 @@
 import os
 import re
 import sqlite3
-from typing import List, Callable
+from typing import List
 
 import bs4
 
-from settings import COURSES_HTML_PATH, DATABASE_PATH, RAW_QUARTER_TABLE
-from utils.classrow import get_class_object
-
-ClassRow: Callable
-ClassRow = None
+from settings import COURSES_HTML_PATH, DATABASE_PATH
+from utils.classrow import get_class_object, create_class, ClassRow
 
 
 class CourseParser:
@@ -24,9 +21,6 @@ class CourseParser:
 
         self.quarter = quarter
         self.current_class, self.description, self.units = '', '', ''
-
-        global ClassRow
-        ClassRow = get_class_object(quarter)
 
     def parse(self) -> List[ClassRow]:
         print('Beginning course parsing...')
@@ -72,6 +66,7 @@ class CourseParser:
     """
 
     def parse_row(self, department, row):
+        ret: List[ClassRow]
         ret = []
         course_num = row.find_all(name='td', attrs={'class': 'crsheader'})
 
@@ -88,7 +83,8 @@ class CourseParser:
                 self.units = "N/A"
             # num slots on the top header
             if len(course_num) == 4:
-                ret.append(ClassRow(department=department, course_num=None, course_id="START/END OF CLASS"))
+                ret.append(create_class(self.quarter, department=department,
+                                        course_num=None, course_id="START/END OF CLASS"))
 
         info = row.find_all(name='td',
                             attrs={'class': 'brdr'})
@@ -115,7 +111,8 @@ class CourseParser:
             room = copy_dict[8]
             instructor = copy_dict[9]
 
-            info = ClassRow(
+            info = create_class(
+                self.quarter,
                 course_id=course_id,
                 department=department,
                 course_num=course_num,

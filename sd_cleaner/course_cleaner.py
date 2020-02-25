@@ -1,15 +1,14 @@
-import dictalchemy
 import itertools
 import sqlite3
 from itertools import groupby
-from typing import List, Dict, Callable
+from typing import List, Dict
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session, make_transient
+from sqlalchemy.orm import sessionmaker, Session
 
 from database.db_interface import Base
 from settings import DATABASE_PATH
-from utils.classrow import get_class_object
+from utils.classrow import get_class_object, create_class, ClassRow
 from utils.timeutils import TimeIntervalCollection
 
 """
@@ -17,9 +16,6 @@ Takes input from CourseParser
 """
 
 SQLITE_STR = "sqlite:///%s" % DATABASE_PATH
-
-ClassRow: Callable
-ClassRow = None
 
 
 class CourseCleaner:
@@ -34,9 +30,6 @@ class CourseCleaner:
         self.database.row_factory = sqlite3.Row
         self.cursor = self.database.cursor()
 
-        global ClassRow
-        ClassRow = get_class_object(quarter)
-
     def clean(self, data: List[ClassRow]):
         print('Begin cleaning database.')
         self.setup_tables()
@@ -48,13 +41,6 @@ class CourseCleaner:
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
         self.session = sessionmaker(bind=self.engine)()
-
-        # self.cursor.execute("DROP TABLE IF EXISTS {}".format(self.quarter))
-        # self.cursor.execute("CREATE TABLE {}"
-        #                     "(DEPARTMENT TEXT, COURSE_NUM TEXT, SECTION_ID TEXT, COURSE_ID TEXT,"
-        #                     "SECTION_TYPE TEXT, DAYS TEXT, TIME TEXT, LOCATION TEXT, ROOM TEXT, "
-        #                     "INSTRUCTOR TEXT, DESCRIPTION TEXT, UNITS TEXT, FOREIGN KEY (DEPARTMENT)"
-        #                     "REFERENCES DEPARTMENT(DEPT_CODE))".format(self.quarter))
 
     def _clean(self, data: List[ClassRow]):
         # getting list of departments
@@ -71,9 +57,10 @@ class CourseCleaner:
     """
 
     def process_department(self, department, data: List[ClassRow]) -> List[ClassRow]:
+        visible_classes: List[ClassRow]
         visible_classes = [row for row in data if row.department == department]
         # doing this so fast_ptr knows where to stop
-        visible_classes.append(ClassRow(course_num=None))
+        visible_classes.append(create_class(self.quarter, course_num=None))
 
         # blank class list for ones to insert
         classes_to_insert = []
@@ -106,25 +93,6 @@ class CourseCleaner:
         return classes_to_insert
 
     def save_classes(self, classes_to_insert: List[ClassRow]):
-        # sql_str = """\
-        #               INSERT INTO {}(DEPARTMENT, COURSE_NUM, SECTION_ID, \
-        #               COURSE_ID, SECTION_TYPE, DAYS, TIME, LOCATION, ROOM, INSTRUCTOR, DESCRIPTION, UNITS)  \
-        #               VALUES
-        #               (:department,
-        #               :course_num,
-        #               :section_id,
-        #               :course_id,
-        #               :section_type,
-        #               :days,
-        #               :times,
-        #               :location,
-        #               :room,
-        #               :instructor,
-        #               :description,
-        #               :units) \
-        #             """.format(self.quarter)
-        # for c in classes_to_insert:
-        #     self.cursor.execute(sql_str, vars(c))
         self.session.add_all(classes_to_insert)
 
     def sanitize_classes(self, classes: List[ClassRow]):
@@ -168,7 +136,7 @@ class CourseCleaner:
 
                     # class with type is a class
                     for class_with_type in type_group:
-                        new_class = ClassRow(**class_with_type.asdict())
+                        new_class = create_class(self.quarter, **class_with_type.asdict())
                         # always guaranteed to have at least one element in the list
                         new_class.course_id = replica[0].course_id
                         # handle the passing of variable information through rows here
@@ -237,7 +205,7 @@ class CourseCleaner:
                                                         len(days) - 1]))
         for entry in day_time_pairs:
             # each subsection has mostly the same info as the section
-            subsection = ClassRow(**section.asdict())
+            subsection = create_class(self.quarter, **section.asdict())
             subsection.days = entry[0]
             subsection.times = entry[1]
             ret.append(subsection)
