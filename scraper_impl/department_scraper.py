@@ -1,72 +1,71 @@
-import os
-import sqlite3
+import logging
+from typing import List
 
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.select import Select
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-from settings import DATABASE_PATH, DATABASE_DIR, QUARTERS_TO_SCRAPE, DEPARTMENT_URL
+from settings import DEPARTMENT_URL, SQLITE_STR
+from utils.models import Department
 from utils.scraper_util import get_browser
 
 
 class DepartmentScraper:
     INFO_MAX_INDEX = 4
 
-    def __init__(self):
+    def __init__(self, quarter):
         # Start up the browser
         self.browser = get_browser()
+        self.quarter = quarter
+        self.engine = create_engine(SQLITE_STR)
+        self.session = sessionmaker(bind=self.engine)()
 
         # Add an implicit wait so that the department options load
         self.browser.implicitly_wait(15)
 
-        # Establish database connection
-        os.makedirs(DATABASE_DIR, exist_ok=True)
-        self.database = sqlite3.connect(DATABASE_PATH)
-        self.database.row_factory = sqlite3.Row
-        self.cursor = self.database.cursor()
-
-    def create_table(self):
-        self.cursor.execute('DROP TABLE IF EXISTS DEPARTMENT')
-        self.cursor.execute('CREATE TABLE IF NOT EXISTS DEPARTMENT (QUARTER TEXT, DEPT_CODE TEXT)')
-
     def scrape(self):
         print("Beginning department scraping.")
-        self.create_table()
+        print("Scraping departments for %s" % self.quarter)
 
-        for quarter in QUARTERS_TO_SCRAPE:
-            print("Scraping departments for %s" % quarter)
-            self.search(quarter)
-            departments = self.get_departments()
-            self.insert_departments(quarter, departments)
-            print("Finished scraping departments for %s" % quarter)
-
+        self.search()
+        self.create_tables()
+        departments = self.get_departments()
+        self.session.add_all(departments)
         self.close()
+
+        print("Finished scraping departments for %s" % self.quarter)
         print("Finished department scraping.")
 
-    def search(self, quarter):
+    def create_tables(self):
+        Department.__table__.create(self.engine, checkfirst=True)
+        self.session.query(Department).filter(Department.quarter == self.quarter).delete()
+
+    def search(self):
         self.browser.get(DEPARTMENT_URL)
         select = Select(self.browser.find_element_by_id('selectedTerm'))
-        select.select_by_value(quarter)
+        try:
+            select.select_by_value(self.quarter)
+        except NoSuchElementException:
+            logging.error(f"Could not find data for {self.quarter}")
 
-    def get_departments(self):
+    def get_departments(self) -> List[Department]:
+        ret: List[Department]
         ret = []
         departments = self.browser.find_element_by_id('selectedSubjects') \
             .find_elements_by_tag_name('option')
         for department in departments:
             department = department.text
-            # Get first four elements
+            # Get first four characters
             department = department[:DepartmentScraper.INFO_MAX_INDEX]
             # Making sure department is in the correct format
             ret.append(self.normalize_department(department))
 
         return ret
 
-    def insert_departments(self, quarter, departments):
-        for department in departments:
-            self.cursor.execute('INSERT INTO DEPARTMENT(QUARTER, DEPT_CODE) VALUES(?, ?)', (quarter, department))
-
-    def normalize_department(self, department):
-        return department.strip()
+    def normalize_department(self, department) -> Department:
+        return Department(quarter=self.quarter, dept_code=department.strip())
 
     def close(self):
-        self.database.commit()
-        self.database.close()
+        self.session.commit()
         self.browser.close()

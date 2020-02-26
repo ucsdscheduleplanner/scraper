@@ -12,9 +12,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
+from utils.models import Department
 from utils.scraper_util import Browser
-from settings import COURSES_HTML_PATH, QUARTERS_TO_SCRAPE
+from settings import COURSES_HTML_PATH, SQLITE_STR
 from settings import DATABASE_PATH, DATABASE_DIR
 from settings import SCHEDULE_OF_CLASSES_URL
 from settings import TIMEOUT, DEPT_SEARCH_TIMEOUT
@@ -160,21 +163,18 @@ class CourseScraperThread(Thread):
 
 
 class CourseScraper:
-    def __init__(self):
-        # Connecting to the database for the list of departments
-        os.makedirs(DATABASE_DIR, exist_ok=True)
-        self.database = sqlite3.connect(DATABASE_PATH)
-        self.cursor = self.database.cursor()
+    def __init__(self, quarter):
+        self.engine = create_engine(SQLITE_STR)
+        self.quarter = quarter
+
+        self.session: Session
+        self.session = sessionmaker(bind=self.engine)()
 
         self.department_queue = queue.Queue()
 
-        for quarter in QUARTERS_TO_SCRAPE:
-            self.cursor.execute("SELECT DEPT_CODE FROM DEPARTMENT WHERE QUARTER=?", (quarter,))
-            # fetching the data returns a tuple with one element,
-            # so using list comprehension to convert the data
-            self.departments = [i[0] for i in self.cursor.fetchall()]
-            for department in self.departments:
-                self.department_queue.put({"department": department, "quarter": quarter})
+        departments = [i.dept_code for i in self.session.query(Department).filter(Department.quarter == self.quarter)]
+        for department in departments:
+            self.department_queue.put({"department": department, "quarter": quarter})
 
         # Recreate top level folder
         if os.path.exists(COURSES_HTML_PATH):

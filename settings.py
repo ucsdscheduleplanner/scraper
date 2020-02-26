@@ -19,7 +19,7 @@ CONFIG = configparser.ConfigParser()
 CONFIG.read(os.path.join(HOME_DIR, "config", "config.example.ini"))
 
 # Database directory
-DATABASE_DIR = os.path.join(HOME_DIR, "cache", "database")
+DATABASE_DIR = os.path.join(HOME_DIR, "database")
 DATABASE_PATH = os.path.join(DATABASE_DIR, "data.db")
 
 # Image directory
@@ -57,6 +57,8 @@ RAW_QUARTER_TABLE = "{}_RAW"
 QUARTERS_TO_SCRAPE = json.loads(CONFIG["VARS"]["QUARTERS"])
 # Time for timeout for browser
 TIMEOUT = 30
+
+SQLITE_STR = "sqlite:///%s" % DATABASE_PATH
 
 # Time before class timeout
 DEPT_SEARCH_TIMEOUT = 5
