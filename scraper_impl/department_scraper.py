@@ -1,5 +1,7 @@
+import logging
 from typing import List
 
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.select import Select
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -42,7 +44,10 @@ class DepartmentScraper:
     def search(self):
         self.browser.get(DEPARTMENT_URL)
         select = Select(self.browser.find_element_by_id('selectedTerm'))
-        select.select_by_value(self.quarter)
+        try:
+            select.select_by_value(self.quarter)
+        except NoSuchElementException:
+            logging.error(f"Could not find data for {self.quarter}")
 
     def get_departments(self) -> List[Department]:
         ret: List[Department]
